@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panda Video Translator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+body{background:#0f172a;color:#f8fafc;padding:16px;display:flex;justify-content:center}
+.card{background:#1e293b;border-radius:12px;padding:20px;width:100%;max-width:500px;box-shadow:0 4px 12px #0005}
+h2{font-size:1.3rem;margin-bottom:16px;color:#38bdf8;text-align:center}
+h3{font-size:1rem;margin:10px 0;color:#38bdf8}
+label{display:block;font-size:.85rem;margin:12px 0 6px;color:#94a3b8}
+input,select,button,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:white;margin-bottom:10px;font-size:.9rem}
+button{background:#0284c7;border:none;font-weight:bold;cursor:pointer}
+button:disabled{background:#475569;cursor:not-allowed}
+.status{font-size:.85rem;color:#fbbf24;text-align:center;margin:10px 0;min-height:20px;word-break:break-word}
+textarea{height:200px;resize:vertical;font-family:monospace;font-size:.8rem}
+.btn-group{display:flex;gap:8px}
+.btn-group select{padding:10px 4px;font-size:.8rem;min-width:0}
+.btn-secondary{background:#334155}
+.custom-model-box{display:none;margin-top:-6px}
+.keyrow{position:relative}
+.keyrow input{padding-right:48px}
+.keyrow button{position:absolute;right:6px;top:4px;width:40px;height:34px;padding:0;margin:0;background:transparent;font-size:1.3rem}
+hr{border:0;border-top:1px solid #334155;margin:16px 0}
+.file-box{border:1px dashed #f8fafc;padding:12px;border-radius:10px;background:#0f172a}
+video{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+
+<h2> 🐼 Panda Video Translator v1.0 </h2>
+
+<label> សោ API របស់ Gemini </label>
+<div class="keyrow">
+<input type="password" id="apiKeys" autocomplete="off" placeholder="បិទភ្ជាប់ API Key">
+<button type="button" id="btnToggleKey"></button>
+</div>
+
+<label> Gemini ម៉ូដែល </label>
+<select id="modelSelect">
+<option value="gemini-3.8-flash" selected>gemini-3.8-flash</option>
+<option value="gemini-3.8-pro">gemini-3.8-pro</option>
+<option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview</option>
+<option value="custom">✍️ Custom Model</option>
+</select>
+
+<div class="custom-model-box" id="">
+<label>ឈ្មោះ Model ផ្ទាល់ខ្លួន</label>
+<input type="text" id="customModelInput" placeholder="បញ្ចូល Model">
+</div>
+
+<!-- FILE FIRST -->
+<label>ជ្រើសរើស Video</label>
+<div class="file-box">
+<input type="file" id="mediaFile" accept="video/*,audio/mpeg,audio/mp3,audio/wav,audio/*">
+<div id="fileInfo" class="status"></div>
+</div>
+
+<!-- LANGUAGE BELOW FILE -->
+<label>ភាសាគោលដៅ</label>
+<select id="targetLang">
+<option value="Khmer" selected>ខ្មែរ + Khmer</option>
+<option value="English">អង់គ្លេស + English</option>
+<option value="Thai">ថៃ + Thai</option>
+<option value="Chinese">ចិន + Chinese</option>
+<option value="Japanese">ជប៉ុន + Japanese</option>
+<option value="Korean">កូរ៉េ + Korean</option>
+<option value="Vietnamese">វៀតណាម + Vietnamese</option>
+<option value="French">បារាំង French + </option>
+<option value="Spanish">អេស្ប៉ាញ + Spanish </option>
+</select>
+
+<button id="btnTranslate"> ចាប់ផ្តើមបកប្រែជា Subtitle + SRT</button>
+<div class="status" id="statusText"></div>
+
+<label>លទ្ធផល Subtitle + SRT កែអក្សរបាន</label>
+<textarea id="resultOutput" placeholder="Subtitle នឹងបង្ហាញនៅទីនេះ..."></textarea>
+
+
+<hr>
+
+<h3>បង្កើតសំឡេង TTS</h3>
+
+<labelម៉ូដែល Gemini TTS</label>
+<input type="text" id="ttsModel" value="gemini-2.5-flash-preview-tts">
+
+<label>រើសសំឡេងតួអង្គ </label>
+<div class="btn-group">
+<select id="voiceA"></select>
+<select id="voiceB"></select>
+<select id="voiceC"></select>
+<select id="voiceD"></select>
+</div>
+
+<button id="btnDub">បង្កើតសំឡេងពី Subtitle</button>
+<div class="status" id="dubStatus"></div>
+
+<button class="btn-secondary" id="btnDlAudio" disabled>🔊 ទាញយកសំឡេង WAV</button>
+<button class="btn-secondary" id="btnDlVideo" disabled>🎬 ទាញយកវីដេអូបកប្រែ</button>
+
+<video id="vid" playsinline></video>
+
+</div>
+
+<script>
+const API='https://generativelanguage.googleapis.com';
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const setStatus=t=>$('statusText').innerText=t;
+const setDub=t=>$('dubStatus').innerText=t;
+const out=$('resultOutput');
+
+const MALE=[
+['ដារ៉ា','Puck'],['វិរៈ','Charon'],
+['សុវណ្ណ','Fenrir'],['រតនា','Orus'],
+['ចាន់ណា','Enceladus'],['វិសាល','Iapetus'],
+['ប៊ុនថន','Algenib'],['មុនី','Rasalgethi']
+];
+const FEMALE=[
+['សុភា','Kore'],['ស្រីនាង','Aoede'],
+['ដាលីន','Leda'],['មាលា','Zephyr'],
+['ចន្ទ្រា','Callirrhoe'],['សុជាតា','Autonoe'],
+['វណ្ណា','Despina'],['រស្មី','Laomedeia']
+];
+
+function fillVoice(id,male,idx){
+const sel=$(id);
+const g1=document.createElement('optgroup');
+g1.label='';
+const g2=document.createElement('optgroup');
+g2.label='';
+MALE.forEach(v=>g1.appendChild(new Option(v[0],v[1])));
+FEMALE.forEach(v=>g2.appendChild(new Option(v[0],v[1])));
+sel.appendChild(male?g1:g2);
+sel.appendChild(male?g2:g1);
+sel.selectedIndex=idx;
+}
+fillVoice('voiceA',false,0);
+fillVoice('voiceB',true,0);
+fillVoice('voiceC',false,1);
+fillVoice('voiceD',true,1);
+
+$('btnToggleKey').onclick=()=>{
+const k=$('apiKeys');
+k.type=k.type==='password'?'text':'password';
+$('btnToggleKey').innerText=k.type==='password'?'👁':'🙈';
+};
+
+$('modelSelect').onchange=()=>{
+$('customModelBox').style.display=
+$('modelSelect').value==='custom'?'block':'none';
+};
+
+$('mediaFile').onchange=async()=>{
+const f=$('mediaFile').files[0];
+if(!f)return;
+$('fileInfo').innerText=
+`ឯកសារ៖ ${f.name} | ទំហំ៖ ${(f.size/1048576).toFixed(2)} MB`;
+};
+
+let keys=[],keyIdx=0;
+function loadKeys(){
+keys=$('apiKeys').value.split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+}
+function currentKey(){return keys[keyIdx%keys.length]}
+function rotateKey(){keyIdx=(keyIdx+1)%keys.length}
+
+async function uploadGeminiFile(file,key){
+const mime=file.type||'video/mp4';
+const start=await fetch(`${API}/upload/v1beta/files?key=${encodeURIComponent(key)}`,{
+method:'POST',
+headers:{
+'X-Goog-Upload-Protocol':'resumable',
+'X-Goog-Upload-Command':'start',
+'X-Goog-Upload-Header-Content-Length':String(file.size),
+'X-Goog-Upload-Header-Content-Type':mime,
+'Content-Type':'application/json'
+},
+body:JSON.stringify({file:{display_name:file.name}})
+});
+if(!start.ok)throw new Error(await start.text());
+const url=start.headers.get('X-Goog-Upload-URL');
+if(!url)throw new Error('មិនអាចទទួល Upload URL បានទេ');
+const up=await fetch(url,{
+method:'POST',
+headers:{
+'X-Goog-Upload-Offset':'0',
+'X-Goog-Upload-Command':'upload, finalize'
+},
+body:file
+});
+if(!up.ok)throw new Error(await up.text());
+return(await up.json()).file;
+}
+
+async function waitForGeminiFile(name,key){
+for(let i=0;i<120;i++){
+const res=await fetch(`${API}/v1beta/${name}?key=${encodeURIComponent(key)}`);
+if(!res.ok)throw new Error(await res.text());
+const d=await res.json();
+if(d.state==='ACTIVE')return d;
+if(d.state==='FAILED')throw new Error('Gemini មិនអាចដំណើរការឯកសារនេះបានទេ');
+setStatus(`⏳ កំពុងដំណើរការសូមរង់ចាំ... ${i+1}`);
+await sleep(4000);
+}
+throw new Error('រង់ចាំ Gemini យូរពេក');
+}
+
+function buildPrompt(lang){
+return `You are a professional subtitle transcription and translation system.
+Analyze the entire uploaded media from beginning to end.
+Create complete subtitles translated into ${lang}.
+Requirements:
+1. Do not skip spoken dialogue.
+2. Preserve chronological order.
+3. Use accurate original timestamps.
+4. Format as HH:MM:SS,mmm --> HH:MM:SS,mmm.
+5. Divide long dialogue into readable subtitle lines.
+6. Do not invent dialogue.
+7. Label speakers A:, B:, C:, D: consistently.
+8. Return only valid SRT content.
+9. Do not summarize or omit any section.`;
+}
+
+async function generateWithRetry(model,body){
+const models=[model,'gemini-3.8-flash','gemini-3.8-pro','gemini-3.1-pro-preview'].filter((m,i,a)=>a.indexOf(m)===i);
+let lastErr;
+for(const m of models){
+let attempts=0;
+const max=Math.max(4,keys.length*2);
+while(attempts<max){
+attempts++;
+setStatus(`🤖 ${m} | Key ${keyIdx%keys.length+1}/${keys.length} | លើកទី ${attempts}`);
+const res=await fetch(`${API}/v1beta/models/${m}:generateContent?key=${encodeURIComponent(currentKey())}`,{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body
+});
+const data=await res.json();
+if(res.ok&&!data.error)return data;
+lastErr=new Error(data.error?.message||'Gemini API Error');
+if([429,500,503].includes(res.status)){
+rotateKey();
+await sleep(keys.length>1?2000:attempts*8000);
+continue;
+}
+if(res.status===404||/not found|not supported/i.test(lastErr.message))break;
+if((res.status===403||res.status===400)&&keys.length>1){
+rotateKey();continue;
+}
+throw lastErr;
+}
+}
+throw lastErr;
+}
+
+$('btnTranslate').onclick=async()=>{
+loadKeys();
+const file=$('mediaFile').files[0];
+let model=$('modelSelect').value;
+if(model==='custom')model=$('customModelInput').value.trim();
+if(!keys.length)return alert('សូមបញ្ចូល API Key!');
+if(!model)return alert('សូមជ្រើសរើស Model!');
+if(!file)return alert('សូមជ្រើសរើសឯកសារ!');
+
+$('btnTranslate').disabled=true;
+$('btnDub').disabled=true;
+out.value='';
+keyIdx=0;
+
+try{
+setStatus('📤 កំពុង Upload...');
+let up,lastError;
+for(let t=0;t<Math.max(3,keys.length);t++){
+try{
+up=await uploadGeminiFile(file,currentKey());
+break;
+}catch(e){
+lastError=e;
+rotateKey();
+}
+}
+if(!up)throw lastError;
+
+const ready=await waitForGeminiFile(up.name,currentKey());
+const data=await generateWithRetry(model,JSON.stringify({
+contents:[{parts:[
+{fileData:{mimeType:ready.mimeType,fileUri:ready.uri}},
+{text:buildPrompt($('targetLang').value)}
+]}],
+generationConfig:{temperature:0.2,maxOutputTokens:65536}
+}));
+
+const parts=data.candidates?.[0]?.content?.parts||[];
+const result=parts.map(p=>p.text||'').join('').replace(/```(?:srt)?/gi,'').trim();
+if(!result)throw new Error('Gemini មិនបានបញ្ជូន Subtitle មកទេ');
+out.value=result;
+setStatus('✅ បកប្រែជោគជ័យ!');
+}catch(e){
+console.error(e);
+setStatus('❌ មានបញ្ហា៖ '+e.message);
+}finally{
+$('btnTranslate').disabled=false;
+$('btnDub').disabled=false;
+}
+};
+
+function download(blob,name){
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');
+a.href=url;a.download=name;a.click();
+setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+
+$('btnDownloadSrt').onclick=()=>{
+if(!out.value.trim())return alert('មិនមាន Subtitle!');
+download(new Blob([out.value],{type:'text/plain;charset=utf-8'}),'subtitles.srt');
+};
+
+const toSec=t=>{
+const m=t.match(/(\d+):(\d+):(\d+)[,.](\d+)/);
+return m?+m[1]*3600+ +m[2]*60+ +m[3]+ +m[4]/1000:0;
+};
+
+const KH={'ក':'A','ខ':'B','គ':'C','ឃ':'D'};
+
+function parseSrt(text){
+const res=[];
+text.replace(/\r/g,'').split(/\n\s*\n/).forEach(block=>{
+const lines=block.trim().split('\n');
+const ti=lines.findIndex(l=>l.includes('-->'));
+if(ti<0)return;
+const [a,b]=lines[ti].split('-->');
+const txt=lines.slice(ti+1).join(' ').trim();
+let spk='A',clean=txt;
+const m=txt.match(/^\[?([A-Da-dកខគឃ])\]?\s*[:：]\s*/);
+if(m){
+spk=KH[m[1]]||m[1].toUpperCase();
+clean=txt.slice(m[0].length);
+}
+if(clean)res.push({start:toSec(a.trim()),end:toSec(b.trim()),text:clean,spk});
+});
+return res;
+}
+
+const SR=24000;
+
+async function ttsOne(text,voice,ttsModel){
+const body=JSON.stringify({
+contents:[{parts:[{text:'សូមអានជាភាសាខ្មែរ ដោយសំឡេងធម្មជាតិ៖ '+text}]}],
+generationConfig:{
+responseModalities:['AUDIO'],
+speechConfig:{
+languageCode:'km-KH',
+voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}
+}
+}
+});
+let lastErr;
+for(let a=0;a<Math.max(5,keys.length*2);a++){
+const res=await fetch(`${API}/v1beta/models/${ttsModel}:generateContent?key=${encodeURIComponent(currentKey())}`,{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body
+});
+const data=await res.json();
+const b64=data.candidates?.[0]?.content?.parts?.find(p=>p.inlineData)?.inlineData?.data;
+if(res.ok&&b64){
+const bin=atob(b64),n=bin.length>>1,f=new Float32Array(n);
+for(let i=0;i<n;i++){
+let v=bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8);
+if(v>32767)v-=65536;
+f[i]=v/32768;
+}
+return f;
+}
+lastErr=new Error(data.error?.message||'TTS Error');
+if([429,500,503].includes(res.status)){
+rotateKey();await sleep(2500);continue;
+}
+if(keys.length>1&&[400,403].includes(res.status)){
+rotateKey();continue;
+}
+throw lastErr;
+}
+throw lastErr;
+}
+
+let dubBuffer=null,dubDuration=0;
+
+function toWav(buf){
+const d=buf.getChannelData(0),n=d.length;
+const ab=new ArrayBuffer(44+n*2),v=new DataView(ab);
+const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');
+v.setUint32(16,16,true);v.setUint16(20,1,true);
+v.setUint16(22,1,true);v.setUint32(24,SR,true);
+v.setUint32(28,SR*2,true);v.setUint16(32,2,true);
+v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+for(let i=0;i<n;i++){
+const s=Math.max(-1,Math.min(1,d[i]));
+v.setInt16(44+i*2,s<0?s*32768:s*32767,true);
+}
+return new Blob([ab],{type:'audio/wav'});
+}
+
+function getDuration(file){
+return new Promise(resolve=>{
+const m=document.createElement(file.type.startsWith('video')?'video':'audio');
+const url=URL.createObjectURL(file);
+m.preload='metadata';m.src=url;
+m.onloadedmetadata=()=>{
+const duration=isFinite(m.duration)?m.duration:0;
+URL.revokeObjectURL(url);resolve(duration);
+};
+m.onerror=()=>{URL.revokeObjectURL(url);resolve(0)};
+});
+}
+
+$('btnDub').onclick=async()=>{
+loadKeys();
+if(!keys.length)return alert('សូមបញ្ចូល API Key!');
+const cues=parseSrt(out.value);
+if(!cues.length)return alert('មិនមាន Subtitle សម្រាប់បង្កើតសំឡេង!');
+const voices={
+A:$('voiceA').value,
+B:$('voiceB').value,
+C:$('voiceC').value,
+D:$('voiceD').value
+};
+const ttsModel=$('ttsModel').value.trim();
+if(!ttsModel)return alert('សូមបញ្ចូល TTS Model!');
+
+$('btnDub').disabled=true;
+$('btnDlAudio').disabled=true;
+$('btnDlVideo').disabled=true;
+
+try{
+const bufs=new Array(cues.length);
+let done=0,next=0;
+const worker=async()=>{
+while(next<cues.length){
+const i=next++;
+bufs[i]=await ttsOne(cues[i].text,voices[cues[i].spk],ttsModel);
+setDub(`🎙️ បង្កើតសំឡេង ${++done}/${cues.length}`);
+}
+};
+await Promise.all([worker(),worker(),worker()]);
+
+const file=$('mediaFile').files[0];
+const mediaDur=file?await getDuration(file):0;
+dubDuration=Math.max(mediaDur,cues[cues.length-1].end+1);
+
+setDub('🎚️ កំពុងលាយសំឡេង...');
+const ctx=new OfflineAudioContext(1,Math.ceil(dubDuration*SR),SR);
+
+cues.forEach((c,i)=>{
+const ab=ctx.createBuffer(1,bufs[i].length,SR);
+ab.copyToChannel(bufs[i],0);
+const src=ctx.createBufferSource();
+src.buffer=ab;
+const slot=Math.max(0.5,c.end-c.start);
+src.playbackRate.value=Math.min(1.6,Math.max(1,ab.duration/slot));
+src.connect(ctx.destination);
+src.start(c.start);
+});
+
+dubBuffer=await ctx.startRendering();
+$('btnDlAudio').disabled=false;
+$('btnDlVideo').disabled=!(file?.type||'').startsWith('video');
+setDub('✅ សំឡេងរួចរាល់!');
+}catch(e){
+console.error(e);
+setDub('❌ មានបញ្ហា៖ '+e.message);
+}finally{
+$('btnDub').disabled=false;
+}
+};
+
+$('btnDlAudio').onclick=()=>{
+if(dubBuffer)download(toWav(dubBuffer),'dubbed-audio.wav');
+};
+
+$('btnDlVideo').onclick=async()=>{
+const file=$('mediaFile').files[0];
+if(!dubBuffer||!file)return;
+const vid=$('vid');
+if(!vid.captureStream||typeof MediaRecorder==='undefined')
+return alert('Browser មិនគាំទ្រការទាញយកវីដេអូទេ');
+
+$('btnDlVideo').disabled=true;
+let ac,timer;
+try{
+vid.src=URL.createObjectURL(file);
+vid.muted=true;
+await new Promise((resolve,reject)=>{
+vid.onloadedmetadata=resolve;
+vid.onerror=()=>reject(new Error('មិនអាចបើកវីដេអូបាន'));
+});
+
+ac=new AudioContext();
+const dest=ac.createMediaStreamDestination();
+const audio=ac.createBufferSource();
+const audioBuf=ac.createBuffer(1,dubBuffer.length,SR);
+audioBuf.copyToChannel(dubBuffer.getChannelData(0),0);
+audio.buffer=audioBuf;
+audio.connect(dest);
+
+const stream=vid.captureStream();
+dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+
+const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+?'video/webm;codecs=vp8,opus':'video/webm';
+
+const rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:2500000});
+const chunks=[];
+rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+const stopped=new Promise(resolve=>rec.onstop=resolve);
+
+vid.currentTime=0;
+timer=setInterval(()=>setDub(
+`🎬 កំពុងថត ${Math.floor(vid.currentTime)}/${Math.floor(vid.duration)} វិនាទី`
+),1000);
+
+rec.start(1000);
+audio.start();
+await vid.play();
+await new Promise(resolve=>vid.onended=resolve);
+
+rec.stop();
+await stopped;
+clearInterval(timer);
+timer=null;
+await ac.close();
+ac=null;
+
+download(new Blob(chunks,{type:'video/webm'}),'dubbed-video.webm');
+setDub('✅ ទាញយកវីដេអូរួចរាល់!');
+}catch(e){
+console.error(e);
+setDub('❌ មានបញ្ហា៖ '+e.message);
+}finally{
+if(timer)clearInterval(timer);
+if(ac)await ac.close().catch(()=>{});
+$('btnDlVideo').disabled=false;
+}
+};
+</script>
+</body>
+</html>
