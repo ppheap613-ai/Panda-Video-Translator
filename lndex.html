@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐼 Panda AI All-in-One Prompt Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0B0B1D;
+            --card-bg: #13132B;
+            --input-bg: #1B1B3A;
+            --purple: #9565FF;
+            --cyan: #62E4FF;
+            --text-main: #F0F2F8;
+            --text-muted: #9BA1B8;
+            --success: #00E676;
+            --danger: #FF5252;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Kantumruy Pro', 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 12px;
+            padding-bottom: 70px;
+        }
+
+        .rgb-box {
+            position: relative;
+            background: var(--card-bg);
+            border-radius: 16px;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .rgb-box::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            z-index: -1;
+            background: linear-gradient(90deg, #ff0055, #9565FF, #62E4FF, #00e676, #ff0055);
+            background-size: 300% 300%;
+            animation: rgbFlow 6s linear infinite;
+            border-radius: 18px;
+        }
+
+        .rgb-box::after {
+            content: "";
+            position: absolute;
+            inset: 2px;
+            background: var(--card-bg);
+            border-radius: 14px;
+            z-index: -1;
+        }
+
+        @keyframes rgbFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        header {
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand h5 {
+            font-size: 1.08rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .btn-settings {
+            background: rgba(149, 101, 255, 0.2);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        #settingsPanel {
+            display: none;
+            background: var(--card-bg);
+            border: 1px solid var(--cyan);
+            border-radius: 14px;
+            padding: 15px;
+            margin-bottom: 16px;
+        }
+
+        #settingsPanel.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.82rem;
+            color: var(--cyan);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        textarea, select, input[type="text"] {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid rgba(149, 101, 255, 0.35);
+            color: var(--text-main);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 0.86rem;
+            outline: none;
+        }
+
+        .all-in-one-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 14px;
+            padding: 10px;
+            background: rgba(149, 101, 255, 0.1);
+            border: 1px solid rgba(98, 228, 255, 0.2);
+            border-radius: 12px;
+        }
+
+        .badge-item {
+            font-size: 0.74rem;
+            background: var(--input-bg);
+            color: var(--cyan);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(98, 228, 255, 0.25);
+        }
+
+        /* Quick Relaxing Chips */
+        .quick-chips {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+            scrollbar-width: none;
+        }
+        .quick-chips::-webkit-scrollbar {
+            display: none;
+        }
+        .chip-btn {
+            white-space: nowrap;
+            background: rgba(98, 228, 255, 0.1);
+            border: 1px solid rgba(98, 228, 255, 0.35);
+            color: var(--text-main);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.76rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .chip-btn:hover, .chip-btn.active {
+            background: linear-gradient(90deg, var(--purple), var(--cyan));
+            color: #0B0B1D;
+            font-weight: 700;
+            border-color: transparent;
+        }
+
+        .options-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(98, 228, 255, 0.4);
+            background: rgba(27, 27, 58, 0.5);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 14px;
+            position: relative;
+        }
+
+        .upload-zone p {
+            font-size: 0.84rem;
+            color: var(--text-muted);
+        }
+
+        #imagePreviewContainer {
+            display: none;
+            margin-top: 8px;
+            position: relative;
+        }
+
+        #imagePreview {
+            max-height: 140px;
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--cyan);
+        }
+
+        .remove-img-btn {
+            position: absolute;
+            top: -8px;
+            right: 50%;
+            transform: translateX(50%);
+            background: var(--danger);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .btn-generate {
+            width: 100%;
+            background: linear-gradient(90deg, var(--purple), var(--cyan));
+            color: #0B0B1D;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 0.98rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(149, 101, 255, 0.4);
+        }
+
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .btn-copy-all {
+            width: 100%;
+            background: rgba(0, 230, 118, 0.15);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            margin-bottom: 14px;
+            cursor: pointer;
+        }
+
+        .result-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(149, 101, 255, 0.35);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 14px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding-bottom: 6px;
+        }
+
+        .result-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--cyan);
+        }
+
+        .btn-copy {
+            background: rgba(98, 228, 255, 0.15);
+            color: var(--cyan);
+            border: 1px solid var(--cyan);
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+        .result-content {
+            font-size: 0.88rem;
+            line-height: 1.55;
+            color: #E2E6F3;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .status-bar {
+            font-size: 0.8rem;
+            color: var(--cyan);
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="rgb-box">
+        <div class="brand">
+            <div style="font-size: 1.8rem;">🐼</div>
+            <div>
+                <handleImageUpload>Panda AI All in One</>
+                
+            </div>
+        </div>
+        <button class="btn-settings" onclick="toggleSettings()">⚙️ API Keys</button>
+    </header>
+
+    <!-- API & Model Configuration Panel -->
+    <div id="settingsPanel">
+        <div class="form-group">
+            <label>🔑 Gemini API Keys </label>
+            <textarea id="apiKeysInput" rows="3" placeholder="AIzaSy..."></textarea>
+        </div>
+        <button class="btn-generate" style="padding: 10px; font-size: 0.9rem;" onclick="saveSettings()">💾 រក្សាទុក API Keys</button>
+        <div id="keyStatus" class="status-bar"></div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div style="background: var(--card-bg); padding: 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06);">
+        
+        <div class="all-in-one-badges">
+            <span class="badge-item">🖼️ Image </span>
+            <span class="badge-item">🎬 Video </span>
+            <span class="badge-item">🌿 Nature </span>
+            <span class="badge-item">🎹 Relaxing Music</span>
+           <span class="badge-item"> 📝 title </span>
+           <span  class="badge-item"> 📄 Description</span>
+           <span class="badge-item">   📋 Hashtags</span>
+        </div>
+
+        <!-- Relaxing Category Selector -->
+        <div class="form-group">
+            <label>🧘 ជ្រើសរើសប្រភេទ Relaxing </label>
+            <select id="relaxingCategorySelect" onchange="syncChipWithSelect()">
+                <option value="CUSTOM">✨ ទូទៅ / តាមគំនិតសរសេរផ្ទាល់ (Custom)</option>
+                
+                <optgroup label="🐠 ទឹក និងសត្វទឹក (Water & Aquarium)">
+                    <option value="BAMBOO_SPA_FOUNTAIN">🎍 ទឹកធ្លាក់ឬស្សីស្ប៉ា (Bamboo Spa Water Fountain)</option>
+                    <option value="TROPICAL_AQUARIUM">🐠 អាងចិញ្ចឹមត្រីចម្រុះពណ៌ (Tropical Fish Aquarium)</option>
+                    <option value="JAPANESE_KOI_POND">🎏 ស្រះត្រីខយជប៉ុន (Japanese Koi Pond)</option>
+                    <option value="DEEP_OCEAN_REEF">🌊 បាតសមុទ្រ និងផ្កាថ្ម (Deep Ocean & Coral Reef)</option>
+                    <option value="JUNGLE_WATERFALL">🏞️ ទឹកជ្រោះក្នុងព្រៃជ្រៅ (Jungle Waterfall)</option>
+                </optgroup>
+
+                <optgroup label="🌧️ ភ្លៀង និងអាកាសធាតុ (Rain, Cozy & Weather)">
+                    <option value="COZY_RAINY_WINDOW">🌧️ ភ្លៀងធ្លាក់មាត់បង្អួចកក់ក្តៅ (Cozy Rainy Window)</option>
+                    <option value="THUNDERSTORM_LAKE">⛈️ ភ្លៀងផ្គររន្ទះពេលយប់ (Thunderstorm & Rain)</option>
+                    <option value="WINTER_SNOWFALL">❄️ ព្រិលធ្លាក់ក្នុងភូមិស្ងប់ស្ងាត់ (Cozy Winter Snowfall)</option>
+                    <option value="CRACKLING_FIREPLACE">🔥 ភ្លើងអុសកក់ក្តៅ (Crackling Fireplace)</option>
+                </optgroup>
+
+                <optgroup label="🌿 ធម្មជាតិ និងព្រៃភ្នំ (Nature & Zen Gardens)">
+                    <option value="JAPANESE_ZEN_GARDEN">⛩️ សួនច្បារ Zen ជប៉ុន (Japanese Zen Garden)</option>
+                    <option value="BAMBOO_FOREST">🎋 ព្រៃឬស្សីពេលព្រឹក/ល្ងាច (Misty Bamboo Forest)</option>
+                    <option value="STARRY_NIGHT_LAKE">🌌 មេឃផ្កាយ និងបឹងស្ងប់ស្ងាត់ (Starry Night Lake)</option>
+                    <option value="SAKURA_RIVER">🌸 ទន្លេផ្កាសាគូរ៉ា (Cherry Blossom River)</option>
+                </optgroup>
+
+                <optgroup label="🎧 គេងលក់ សមាធិ និងរៀន (Sleep, Study & Meditation)">
+                    <option value="LOFI_STUDY_ROOM">📚 បន្ទប់រៀន Lo-Fi ពេលយប់ (Lo-Fi Study & Chill)</option>
+                    <option value="DEEP_SLEEP_NEBULA">😴 សមាធិ និងគេងលក់ស្កប់ស្កល់ (Deep Sleep & Meditation)</option>
+                    <option value="LUXURY_SPA_ROOM">🕯️ បន្ទប់ស្ប៉ា និងម៉ាស្សា (Luxury Spa & Massage)</option>
+                    <option value="CYBERPUNK_RAIN">🌃 រាត្រីភ្លៀង Cyberpunk (Rainy Cyberpunk Chill)</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <!-- Quick Tap Presets -->
+        <div class="quick-chips" id="quickChips">
+            <button type="button" class="chip-btn" onclick="selectPreset('BAMBOO_SPA_FOUNTAIN', this)">🎍 ទឹកឬស្សីស្ប៉ា</button>
+            <button type="button" class="chip-btn" onclick="selectPreset('TROPICAL_AQUARIUM', this)">🐠 អាងត្រី</button>
+            <button type="button" class="chip-btn" onclick="selectPreset('JAPANESE_KOI_POND', this)">🎏 ស្រះត្រី Koi</button>
+            <button type="button" class="chip-btn" onclick="selectPreset('COZY_RAINY_WINDOW', this)">🌧️ ភ្លៀងមាត់បង្អួច</button>
+            <button type="button" class="chip-btn" onclick="selectPreset('CRACKLING_FIREPLACE', this)">🔥 ភ្លើងអុស</button>
+            <button type="button" class="chip-btn" onclick="selectPreset('JUNGLE_WATERFALL', this)">🏞️ ទឹកជ្រោះព្រៃ</button>
+            <button type="button" class="chip-btn" onclick="selectPreset('LOFI_STUDY_ROOM', this)">📚 Lo-Fi Study</button>
+            <button type="button" class="chip-btn" onclick="selectPreset('DEEP_SLEEP_NEBULA', this)">😴 Deep Sleep</button>
+        </div>
+
+        <div class="options-row">
+            <div class="form-group">
+                <label>📺 កម្រិតភាពច្បាស់វីដេអូ </label>
+                <select id="resolutionSelect">
+                    <option value="8K Ultra HD, photorealistic, hyper-detailed, masterpiece">8K Ultra HD</option>
+                    <option value="4K UHD, high resolution, sharp focus, cinematic quality">4K UHD</option>
+                    <option value="4K 60fps, smooth seamless loop motion, ray tracing, Unreal Engine 5">4K 60fps (Seamless Loop)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>🎨 រចនាប័ទ្ម ស្ទាយ </label>
+                <select id="styleSelect">
+                    <option value="Photorealistic, natural lighting, ultra-clear 8K photography">Realistic (ធម្មជាតិពិត)</option>
+                    <option value="Cozy ambient aesthetic, warm glowing lights, peaceful tranquil atmosphere">Cozy / Relaxing</option>
+                    <option value="Cinematic lighting, dramatic soft shadows, shot on ARRI Alexa, 35mm lens">Cinematic</option>
+                    <option value="Studio Ghibli anime style, dreamy atmosphere, hand-painted background">Anime / Ghibli</option>
+                    <option value="3D Pixar and Disney animation style, vibrant colors, soft lighting">3D Cartoon</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="options-row">
+            <div class="form-group">
+                <label>🎥 ចលនាកាមេរ៉ា </label>
+                <select id="cameraSelect">
+                    <option value="Static Tripod Locked-Off (completely still camera, only water, rain, fish, or leaves move smoothly in seamless loop)">Static Tripod (កាមេរ៉ានៅនឹងថ្កល់ - ល្អបំផុតសម្រាប់ Loop)</option>
+                    <option value="Slow Zoom In (seamless gentle forward zoom, hypnotic ambient loop)">Slow Zoom In (Loop)</option>
+                    <option value="Slow Zoom Out (gradual backward reveal, widening cinematic perspective)">Slow Zoom Out (Reveal)</option>
+                    <option value="Smooth Dolly In (gliding forward camera track into the scene)">Smooth Dolly In (រុញចូលត្រង់)</option>
+                    <option value="Smooth Dolly Out (gliding backward camera pull away from subject)">Smooth Dolly Out (ទាញថយក្រោយ)</option>
+                    <option value="Slow Pan Left (smooth horizontal camera sweep from right to left)">Slow Pan Left (រេទៅឆ្វេង)</option>
+                    <option value="Slow Pan Right (smooth horizontal camera sweep from left to right)">Slow Pan Right (រេទៅស្តាំ)</option>
+                    <option value="Slow Tilt Up (vertical upward camera movement revealing height and sky)">Slow Tilt Up (ងើយឡើងលើ)</option>
+                    <option value="Slow Tilt Down (vertical downward camera movement from sky to ground)">Slow Tilt Down (ឱនចុះក្រោម)</option>
+                    <option value="360-Degree Orbit (smooth circular camera rotation around the subject)">360° Orbit (បង្វិលជុំវិញ)</option>
+                    <option value="180-Degree Arc Shot (semicircular cinematic sweep around subject)">180° Arc Shot (កោងជុំវិញពាក់កណ្តាល)</option>
+                    <option value="FPV Drone Fly-Through (dynamic high-speed immersive aerial flight through scene)">FPV Drone Fly-Through (ដ្រូនហោះឆ្លងកាត់)</option>
+                    <option value="Aerial Top-Down Bird's-Eye View (90-degree overhead drone shot moving slowly)">Aerial Top-Down / Bird's-Eye (មើលពីលើចុះក្រោម)</option>
+                    <option value="Drone Rising Crane Shot (ascending high into the air revealing vast landscape)">Drone Rising Crane (ហោះឡើងខ្ពស់)</option>
+                    <option value="Tracking / Follow Shot (camera moves smoothly alongside moving subject)">Tracking / Follow Shot (តាមពីក្រោយ/ចំហៀង)</option>
+                    <option value="Macro Extreme Close-Up (razor-sharp microscopic detail with creamy bokeh background)">Macro Extreme Close-Up (ថតជិតបំផុត)</option>
+                    <option value="Rack Focus Shift (smooth focus transition from foreground object to background)">Rack Focus (ប្តូរ Focus ជិត-ឆ្ងាយ)</option>
+                    <option value="Low-Angle Hero Shot (camera positioned low looking upward for dramatic scale)">Low-Angle Shot (ថតពីក្រោមឡើងលើ)</option>
+                    <option value="Hyperlapse / Time-Lapse Motion (accelerated time flow with smooth forward camera movement)">Hyperlapse / Time-Lapse (ចលនាលឿនឆ្លងពេល)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>📐 ខ្នាតទំហំវីដេអូ </label>
+                <select id="ratioSelect">
+                    <option value="16:9 (--ar 16:9 widescreen YouTube / TV format)">16:9 (YouTube / TV)</option>
+                    <option value="9:16 (--ar 9:16 vertical TikTok / Shorts / Reels format)">9:16 (TikTok / Shorts)</option>
+                    <option value="1:1 (--ar 1:1 square social media format)">1:1 (Square)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>📸 រូបភាពជាគំរូ អោយ Ai សរសេរថ្មី </label>
+            <div class="upload-zone" onclick="document.getElementById('imageInput').click()">
+                <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+                <p id="uploadText">➕ ចុចជ្រើសរើសរូបភាពគំរូ</p>
+                <div id="imagePreviewContainer">
+                    <img id="imagePreview" src="" alt="Preview">
+                    <button type="button" class="remove-img-btn" onclick="removeImage(event)">❌ លុបរូប</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>✍️ គំនិត របស់ខ្លួនឯង </label>
+            <textarea id="userPromptInput" rows="2" placeholder="ឧទាហរណ៍៖ មានផ្កាឈូកពណ៌ផ្កាឈូក និងពន្លឺភ្លើងទៀនពណ៌មាស..."></textarea>
+        </div>
+
+        <button class="btn-generate" id="generateBtn" onclick="generateAll()">🚀 បង្កើត Prompts ឥឡូវនេះ</button>
+        <div id="statusBar" class="status-bar">រួចរាល់សម្រាប់ដំណើរការ</div>
+    </div>
+
+    <!-- Output Results Section -->
+    <div class="results-section" id="resultsSection">
+        <button class="btn-copy-all" onclick="copyAllResults()">📋 Copy All English Prompts & SEO</button>
+
+        <div class="result-card">
+            <div class="result-header">
+                <span class="result-title">🖼️ 1. Image Prompt </span>
+                <button class="btn-copy" onclick="copyText('outImagePrompt')">📋 Copy</button>
+            </div>
+            <div class="result-content" id="outImagePrompt"></div>
+        </div>
+
+        <div class="result-card">
+            <div class="result-header">
+                <span class="result-title">🎬 2. Video Prompt + Camera</span>
+                <button class="btn-copy" onclick="copyText('outVideoPrompt')">📋 Copy</button>
+            </div>
+            <div class="result-content" id="outVideoPrompt"></div>
+        </div>
+
+        <div class="result-card">
+            <div class="result-header">
+                <span class="result-title">🌿 3. Nature Prompt</span>
+                <button class="btn-copy" onclick="copyText('outNaturePrompt')">📋 Copy</button>
+            </div>
+            <div class="result-content" id="outNaturePrompt"></div>
+        </div>
+
+        <div class="result-card">
+            <div class="result-header">
+                <span class="result-title">🎹 4. Relaxing Music Prompt</span>
+                <button class="btn-copy" onclick="copyText('outMusicPrompt')">📋 Copy</button>
+            </div>
+            <div class="result-content" id="outMusicPrompt"></div>
+        </div>
+
+        <div class="result-card">
+            <div class="result-header">
+                <span class="result-title">📢 5. Titles + Description Prompt </span>
+                <button class="btn-copy" onclick="copyText('outTitleDesc')">📋 Copy</button>
+            </div>
+            <div class="result-content" id="outTitleDesc"></div>
+        </div>
+    <div class="result-card">
+            <div class="result-header">
+                <span class="result-title">#️⃣ 6. Hashtags Prompt </span>
+                <button class="btn-copy" onclick="copyText('outHashtags')">📋 Copy</button>
+            </div>
+            <div class="result-content" id="outHashtags"></div>
+        </div>
+    </div>
+
+    <script>
+        let base64Image = null;
+        let imageMimeType = null;
+        let currentKeyIndex = 0;
+        let cachedValidModels = null;
+        let clickCounter = 0;
+
+        // Core Subjects: Strict subject lock so it NEVER drifts to another topic
+        const THEME_SUBJECTS = {
+            "BAMBOO_SPA_FOUNTAIN": "Zen bamboo water fountain (shishi-odoshi / bamboo spouts pouring crystal-clear water into a serene stone spa basin)",
+            "TROPICAL_AQUARIUM": "Crystal-clear freshwater tropical fish aquarium with colorful exotic fish, aquatic plants, and rising pearl air bubbles",
+            "JAPANESE_KOI_POND": "Tranquil Japanese Zen Koi pond with vibrant colorful Koi fish swimming gracefully under floating lily pads",
+            "DEEP_OCEAN_REEF": "Deep ocean underwater coral reef with colorful tropical marine life, glowing jellyfish, and gentle sea currents",
+            "JUNGLE_WATERFALL": "Hidden lush tropical jungle waterfall cascading into a crystal-clear turquoise lagoon",
+            "COZY_RAINY_WINDOW": "Cozy warm indoor room beside a large raindrop-covered window overlooking a misty rainy landscape",
+            "THUNDERSTORM_LAKE": "Dramatic tranquil night thunderstorm with heavy rain falling onto a calm dark lake and distant soft lightning",
+            "WINTER_SNOWFALL": "Peaceful snowy winter landscape with soft white snowflakes falling gently in slow motion",
+            "CRACKLING_FIREPLACE": "Warm crackling wood-burning stone fireplace with glowing golden embers and dancing flames in a cozy room",
+            "JAPANESE_ZEN_GARDEN": "Traditional Japanese Zen courtyard garden with raked white gravel waves, mossy rocks, and serene wooden architecture",
+            "BAMBOO_FOREST": "Towering tranquil green bamboo forest with a peaceful mossy stone pathway winding through tall bamboo stalks",
+            "STARRY_NIGHT_LAKE": "Breathtaking starry Milky Way night sky reflecting over a mirror-like calm mountain lake",
+            "SAKURA_RIVER": "Serene slow-flowing river lined with blooming pink cherry blossom (Sakura) trees with floating pink petals",
+            "LOFI_STUDY_ROOM": "Cozy aesthetic night-time study room desk with a warm glowing lamp, open notebook, and rain outside the window",
+            "DEEP_SLEEP_NEBULA": "Hypnotic slow-moving deep dark indigo and violet cosmic nebula clouds with soft twinkling stars for sleep",
+            "LUXURY_SPA_ROOM": "Tranquil luxury wellness spa sanctuary with warm flickering candles, orchids, smooth massage stones, and gentle mist",
+            "CYBERPUNK_RAIN": "Peaceful futuristic rainy night balcony overlooking a glowing neon cyberpunk skyline with rain reflecting in puddles"
+        };
+
+        // Rotating Fresh Dimensions (Time of Day, Camera Framing, Color Palette, Micro-Details)
+        // Cycles cleanly on every click so two consecutive clicks NEVER share the same setup
+        const TIME_AND_LIGHT = [
+            "Early golden sunrise with warm diagonal sunbeams and soft morning mist",
+            "Blue twilight hour with cool indigo shadows contrasting against warm golden candle/lantern light",
+            "Midday crystal-clear natural sunlight creating shimmering water caustics and bright highlights",
+            "Warm amber sunset golden hour bathing the entire scene in rich honey and peach tones",
+            "Deep peaceful midnight atmosphere illuminated by soft silver moonlight and gentle bioluminescent accents",
+            "Soft overcast misty morning with diffused pearl-white light and ultra-calm pastel colors",
+            "Late afternoon warm sunbeams filtering through foliage with sparkling dust motes and bokeh"
+        ];
+
+        const CAMERA_FRAMING = [
+            "Intimate macro close-up focusing sharply on water ripples and textures with creamy shallow depth of field",
+            "Eye-level balanced symmetrical composition placing the main subject right in the peaceful center",
+            "Wide-angle panoramic sanctuary shot showing the full surrounding environment and natural depth",
+            "Low-angle upward perspective making the scene look grand, immersive, and majestic",
+            "45-degree angled composition using natural foreground framing (leaves, stones, or wooden frame) for 3D depth",
+            "High-angle slightly overhead view looking down onto the calm surface reflections and details"
+        ];
+
+        const DECOR_AND_ACCENTS = [
+            "accented with blooming pink lotus blossoms, smooth black river pebbles, and delicate water droplets",
+            "decorated with white fragrant orchids, warm flickering beeswax candles, and lush green velvet moss",
+            "featuring floating frangipani (plumeria) flowers, weathered carved stone lanterns, and subtle aromatic steam",
+            "surrounded by vibrant red and gold autumn maple leaves, dew-covered ferns, and sparkling reflections",
+            "minimalist pure natural aesthetic with crystal-clear water ripples, smooth granite stones, and soft glowing fireflies",
+            "enriched with delicate cherry blossom petals drifting on the surface and warm wooden architectural details"
+        ];
+
+        window.onload = () => {
+            const savedKeys = localStorage.getItem('panda_gemini_keys') || '';
+            document.getElementById('apiKeysInput').value = savedKeys;
+            updateKeyStatus();
+            if (!savedKeys) {
+                document.getElementById('settingsPanel').classList.add('active');
+            }
+        };
+
+        function selectPreset(themeKey, btnEl) {
+            const select = document.getElementById('relaxingCategorySelect');
+            select.value = themeKey;
+            
+            document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            
+            const selectedText = select.options[select.selectedIndex].text;
+            document.getElementById('statusBar').innerText = `✨ បានជ្រើសរើស៖ ${selectedText}`;
+        }
+
+        function syncChipWithSelect() {
+            const select = document.getElementById('relaxingCategorySelect');
+            const val = select.value;
+            document.querySelectorAll('.chip-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick').includes(val));
+            });
+            const selectedText = select.options[select.selectedIndex].text;
+            document.getElementById('statusBar').innerText = `✨ បានជ្រើសរើស៖ ${selectedText}`;
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('active');
+        }
+
+        function saveSettings() {
+            const keys = document.getElementById('apiKeysInput').value.trim();
+            localStorage.setItem('panda_gemini_keys', keys);
+            cachedValidModels = null;
+            updateKeyStatus();
+            toggleSettings();
+        }
+
+        function getApiKeys() {
+            const raw = document.getElementById('apiKeysInput').value || localStorage.getItem('panda_gemini_keys') || '';
+            return raw.split('\n').map(k => k.trim()).filter(k => k.length > 10);
+        }
+
+        function updateKeyStatus() {
+            const keys = getApiKeys();
+            const statusEl = document.getElementById('keyStatus');
+            if (keys.length === 0) {
+                statusEl.innerHTML = `<span style="color: var(--danger);">⚠️ សូមបញ្ចូល API Key ជាមុនសិន!</span>`;
+            } else {
+                statusEl.innerHTML = `<span style="color: var(--success);">✅ បានរក្សាទុក API Key ចំនួន ${keys.length} គ្រាប់</span>`;
+            }
+        }
+
+        async function getRealAvailableModels(apiKey) {
+            if (cachedValidModels && cachedValidModels.length > 0) {
+                return cachedValidModels;
+            }
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error?.message || "API Key មិនត្រឹមត្រូវ!");
+            }
+            const models = (data.models || [])
+                .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+                .map(m => m.name.replace("models/", ""))
+                .filter(name => name.includes("gemini") && !name.includes("vision") && !name.includes("embedding") && !name.includes("tts") && !name.includes("image"));
+
+            models.sort((a, b) => {
+                const score = m => (m.includes("flash") ? 2 : 0) + (m.includes("lite") ? 1 : 0);
+                return score(b) - score(a);
+            });
+
+            cachedValidModels = models;
+            return models;
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 512;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height && width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    } else if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+                    base64Image = compressedDataUrl.split(',')[1];
+                    imageMimeType = 'image/jpeg';
+
+                    document.getElementById('imagePreview').src = compressedDataUrl;
+                    document.getElementById('imagePreviewContainer').style.display = 'block';
+                    document.getElementById('uploadText').style.display = 'none';
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeImage(event) {
+            event.stopPropagation();
+            base64Image = null;
+            imageMimeType = null;
+            document.getElementById('imageInput').value = '';
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+            document.getElementById('uploadText').style.display = 'block';
+        }
+
+        async function callGeminiAuto(payload) {
+            const keys = getApiKeys();
+            if (keys.length === 0) {
+                toggleSettings();
+                throw new Error("សូមបញ្ចូល Gemini API Key ជាមុនសិន!");
+            }
+
+            const apiKey = keys[currentKeyIndex % keys.length];
+            currentKeyIndex++;
+
+            document.getElementById('statusBar').innerText = `🔍 កំពុងភ្ជាប់ទៅម៉ូដែលដែលដើរពិតជាមួយ Key របស់អ្នក...`;
+            const realModels = await getRealAvailableModels(apiKey);
+            
+            if (!realModels || realModels.length === 0) {
+                throw new Error("API Key នេះមិនមានម៉ូដែល Gemini សម្រាប់ប្រើប្រាស់ទេ!");
+            }
+
+            let lastError = null;
+            for (let i = 0; i < Math.min(realModels.length, 4); i++) {
+                const model = realModels[i];
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+                try {
+                    document.getElementById('statusBar').innerText = `⚡ កំពុងបង្កើតគំនិតថ្មីប្លែកជាមួយ ${model}...`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error?.message || `HTTP ${response.status}`);
+                    }
+
+                    return { text: data.candidates[0].content.parts[0].text, modelUsed: model };
+                } catch (err) {
+                    lastError = err;
+                    console.warn(`Model ${model} failed:`, err.message);
+                }
+            }
+            throw new Error(`បរាជ័យ៖ ${lastError.message}`);
+        }
+
+        async function generateAll() {
+            const relaxingSelect = document.getElementById('relaxingCategorySelect');
+            const themeKey = relaxingSelect.value;
+            const userIdea = document.getElementById('userPromptInput').value.trim();
+
+            if (themeKey === "CUSTOM" && !userIdea && !base64Image) {
+                alert("សូមជ្រើសរើសប្រភេទ Relaxing ឬសរសេរគំនិតរបស់អ្នកជាមុនសិន!");
+                return;
+            }
+
+            const resolution = document.getElementById('resolutionSelect').value;
+            const style = document.getElementById('styleSelect').value;
+            const cameraMotion = document.getElementById('cameraSelect').value;
+            const aspectRatio = document.getElementById('ratioSelect').value;
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+
+            // Advance click counter + random offset so every single click picks a completely different combination
+            clickCounter++;
+            const randOffset = Math.floor(Math.random() * 100);
+            const selectedLight = TIME_AND_LIGHT[(clickCounter + randOffset) % TIME_AND_LIGHT.length];
+            const selectedFraming = CAMERA_FRAMING[(clickCounter * 2 + randOffset) % CAMERA_FRAMING.length];
+            const selectedDecor = DECOR_AND_ACCENTS[(clickCounter * 3 + randOffset) % DECOR_AND_ACCENTS.length];
+            const uniqueSeed = Math.floor(100000 + Math.random() * 900000);
+
+            const coreSubject = (themeKey !== "CUSTOM" && THEME_SUBJECTS[themeKey])
+                ? THEME_SUBJECTS[themeKey]
+                : (userIdea || "Scene analyzed from reference image");
+
+            const systemPrompt = `You are an elite AI visual & audio prompt director (Generation #${clickCounter}, Seed #${uniqueSeed}).
+RULE 1: Output 100% ENGLISH ONLY. Translate any Khmer ideas into vivid, natural English.
+RULE 2: STRICT SUBJECT LOCK — Your prompt MUST center 100% on this exact core subject:
+"${coreSubject}"
+Never switch to an unrelated topic.
+
+RULE 3: MANDATORY FRESH SCENE DIRECTION — To ensure this generation is completely fresh and unique from any previous run, build the scene using these exact creative directions:
+- Lighting & Time of Day: ${selectedLight}
+- Camera Angle & Composition: ${selectedFraming}
+- Environmental Details & Accents: ${selectedDecor}
+${userIdea && themeKey !== "CUSTOM" ? `- User's Custom Additions: ${userIdea}` : ""}
+
+Technical Specs:
+- Resolution: "${resolution}"
+- Visual Style: "${style}"
+- Video Camera Motion: "${cameraMotion}"
+- Aspect Ratio: "${aspectRatio}"
+${base64Image ? "- Reference Image: Blend visual structure and colors from the attached image into this scene." : ""}
+
+Return strictly valid JSON with these 6 keys:
+{
+  "image_prompt": "A brand-new, richly detailed English image prompt combining the Core Subject + Lighting/Time + Camera Angle + Environmental Accents + ${resolution}, ${style}, ${aspectRatio}",
+  "video_prompt": "A brand-new English AI video generation prompt (Kling/Runway/Luma/Sora) depicting the exact same scene in seamless loop motion, natural water/light/particle physics, camera motion '${cameraMotion}', ${resolution}, ${style}, ${aspectRatio}",
+  "nature_sound_prompt": "Detailed English ASMR/nature soundscape prompt matching the exact physical sounds of this scene",
+  "relaxing_music_prompt": "Fresh English relaxing music prompt (instruments, tempo 55-68 BPM, warm healing mood) tailored to this exact time of day and atmosphere",
+  "title_and_description": "3 fresh, clickable English YouTube/TikTok titles specifically for this exact scene + 1 short SEO English description",
+  "hashtags": "18 trending English hashtags matching this exact scene"
+}`;
+
+            const parts = [{ text: systemPrompt }];
+            if (base64Image) {
+                parts.push({ inlineData: { mimeType: imageMimeType, data: base64Image } });
+            }
+
+            const payload = {
+                contents: [{ parts: parts }],
+                generationConfig: {
+                    temperature: 1.0,
+                    topP: 0.95,
+                    responseMimeType: "application/json"
+                }
+            };
+
+            try {
+                const result = await callGeminiAuto(payload);
+                const cleanJson = result.text.replace(/```json|```/g, '').trim();
+                const parsed = JSON.parse(cleanJson);
+
+                document.getElementById('outImagePrompt').innerText = parsed.image_prompt || '';
+                document.getElementById('outVideoPrompt').innerText = parsed.video_prompt || '';
+                document.getElementById('outNaturePrompt').innerText = parsed.nature_sound_prompt || '';
+                document.getElementById('outMusicPrompt').innerText = parsed.relaxing_music_prompt || '';
+                document.getElementById('outTitleDesc').innerText = parsed.title_and_description || '';
+                document.getElementById('outHashtags').innerText = parsed.hashtags || '';
+
+                document.getElementById('resultsSection').style.display = 'block';
+                document.getElementById('statusBar').innerText = `✅ រួចរាល់! ឈុតថ្មីទី #${clickCounter} (Seed #${uniqueSeed})`;
+                document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                alert(error.message);
+                document.getElementById('statusBar').innerText = "❌ " + error.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function copyText(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const status = document.getElementById('statusBar');
+                status.innerText = "📋 Copied!";
+                setTimeout(() => { status.innerText = "រួចរាល់សម្រាប់ដំណើរការ"; }, 2000);
+            });
+        }
+
+        function copyAllResults() {
+            const allText = `🖼️ [IMAGE]\n${document.getElementById('outImagePrompt').innerText}\n\n` +
+                            `🎬 [VIDEO]\n${document.getElementById('outVideoPrompt').innerText}\n\n` +
+                            `🌧️ [NATURE AMBIENT SOUND]\n${document.getElementById('outNaturePrompt').innerText}\n\n` +
+                            `🎹 [RELAXING MUSIC PROMPT]\n${document.getElementById('outMusicPrompt').innerText}\n\n` +
+                            `📢 [TITLE & DESCRIPTION]\n${document.getElementById('outTitleDesc').innerText}\n\n` +
+                            `#️⃣ [HASHTAGS]\n${document.getElementById('outHashtags').innerText}`;
+            
+            navigator.clipboard.writeText(allText).then(() => {
+                const status = document.getElementById('statusBar');
+                status.innerText = "📋 Copied All!";
+                setTimeout(() => { status.innerText = "រួចរាល់សម្រាប់ដំណើរការ"; }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
